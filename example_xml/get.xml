@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soapenv:Envelope 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+    xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+    xmlns:axis="http://axis2.ws.jasperserver.jaspersoft.com">
+  <soapenv:Body>
+    <axis:get soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+      <requestXmlString xsi:type="xsd:string">
+      <![CDATA[
+        <request operationName="get" locale="en">
+            <resourceDescriptor name="JRLogo" wsType="img" uriString="/Reports/xforty/user_list" isNew="false">
+            </resourceDescriptor>
+        </request>
+        ]]>
+      </requestXmlString>
+     </axis:get>
+  </soapenv:Body>
+</soapenv:Envelope>
