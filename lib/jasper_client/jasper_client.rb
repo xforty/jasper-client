@@ -1,145 +1,225 @@
-require 'rubygems'
-require 'savon'
-require 'builder'
-require 'ostruct'
-require 'nokogiri'
-
-::Savon::Request.log = false;
-
-class String
-  def underscore
-    word = self.to_s.dup
-    word.gsub!(/::/, '/')
-    word.gsub!(/([A-Z]+)([A-Z][a-z])/,'\1_\2')
-    word.gsub!(/([a-z\d])([A-Z])/,'\1_\2')
-    word.tr!("-", "_")
-    word.downcase!
-    word
-  end
-end
-
-class JasperClient < ::Savon::Client
-
-  #--------------------------------------------------------------------
-  # Resources
-  #--------------------------------------------------------------------
-  class Resource < OpenStruct
-    def initialize(xml_doc)
-      puts xml_doc.to_xml
-      super
-      xml_doc.attribute_nodes.each { |node|
-        send("%s=" % [ node.name.underscore ], node.value)
-      }
+module JasperClient
+  # a Jasper Server resource.
+  #
+  # A Jasperserver resource is a generic concept used to represent almost anything
+  # in a jasper server.  It can be a file, an image, pre-run report output, a query, 
+  # a report control, etc.  We attempt to boil down the resource to something 
+  # relatively consumable by application developers.
+  class Resource
+    attr_reader :name, :type, :uri_string, :label, :description, :creation_date, :properties, :resources
+    
+    # Take a Nokogiri::XML object of a 
+    def initialize(soap)
+      return unless soap.respond_to?(:search)
+      
+      @name = soap['name']
+      @type = soap['wsType']
+      @uri_string = soap['uriString']
+      @label = soap.search('./label/node()').inner_text
+      @description = soap.search('./description/node()').inner_text
+      @createion_date = soap.search('./creation_date/node()').inner_text
+      
+      initialize_properties soap.search('./resourceProperty')
+      initialize_resources soap.search('./resourceDescriptor')
+    end
+    
+    def initialize_properties(properties)
+      @properties = Hash.new
+      properties.each do |prop|
+        @properties[prop['name']] = prop.inner_text.strip
+      end
+    end
+    
+    def initialize_resources(resources)
+      @resources = []
+      resources.each do |res|
+        @resources << Resources.new(res)
+      end
     end
   end
+  # A crack at a Jasper Server client for the repository service.
+  #
+  # This client sits on top of several common Ruby APIs including
+  # the Savon SOAP API, XmlBuilder, and nokogiri.
+  class RepositoryService < ::Savon::Client
   
-  #--------------------------------------------------------------------
-  # Requests
-  #--------------------------------------------------------------------
-  class Request
-    def build_request(&blk) 
-      inner_xml = Builder::XmlMarkup.new :indent => 2
-      inner_xml.request 'operationName' => soap_method do |request|
-        yield request
+    # Set this to true if you'd like to have Savon log to stderr
+    ::Savon::Request.log = false;
+
+    # Request XML is built using the Request.
+    #
+    # A request looks like:
+    #
+    # <?xml version="1.0" encoding="utf-8"?>
+    # <soapenv:Envelope 
+    #     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    #     xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+    #     xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+    #     xmlns:axis="http://axis2.ws.jasperserver.jaspersoft.com">
+    #   <soapenv:Body>
+    #     <axis:list soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+    #       <requestXmlString xsi:type="xsd:string">
+    #       <![CDATA[
+    #          <request operationName="list"> 
+    #            <argument name="LIST_RESOURCES"/> 
+    #            <argument name="RESOURCE_TYPE">reportUnit</argument> 
+    #            <argument name="START_FROM_DIRECTORY">/Reports/xforty</argument> 
+    #         </request>
+    #         ]]>
+    #       </requestXmlString>
+    #      </axis:list>
+    #   </soapenv:Body>
+    # </soapenv:Envelope>
+    #
+    # The soap envelope, body, and action (in this case axis:list) elements
+    # are automatically constructed by Savon.  The requestXmlString element and 
+    # sub elements are created by the build() method.  This method yields a builder
+    # that is expected to create the contents of the request element (the arugment 
+    # tags in this case).
+    # 
+    class Request
+      attr_reader :name
+    
+      # Create a new Request.  The name passed is the
+      # request name (eg list, get, runReport).
+      def initialize(name)
+        @name = name
+      end
+    
+      # Takes a block which is yielded with an XML builder
+      # that represents the internal XML inside the <request>
+      # tags in the request.
+      def build(&block)
+        inner_xml = Builder::XmlMarkup.new :indent => 2
+        inner_xml.request 'operationName' => soap_method do |request|
+          yield request
+        end
+      
+        body = Builder::XmlMarkup.new :indent => 2
+        body.requestXmlString { |request_string| request_string.cdata! inner_xml.target! }
+      end
+    
+      # Returns the soap method name for this request.  
+      def soap_method
+        self.name.to_s.underscore
+      end
+    end
+
+    # A response subclass exists for each type of response.  There is a response type for
+    # each type of request (list, get, runReport).  Code common to all response types is
+    # put into the Response class, otherwise responses are named CamelizedRequestNameResponse.
+    # So for example ListResponse, GetResponse, RunReportResponse.
+    class Response
+      attr_reader :xml_doc, :resources
+    
+      # "0" if the request was successfully processed by the server.
+      def return_code
+        xml_doc.search('//returnCode').inner_text
+      end
+    
+      # return true if the response is successful.
+      def success?
+        "0" == return_code
+      end
+    
+      # Search the response using xpath.
+      def search(path)
+        return xml_doc.search(path) if xml_doc.respond_to?(:search)
+      
+        # return something that acts like a dom element (nokogiri)
+        x = ""
+        class << x
+          def inner_text; ""; end
+          alias inner_html inner_text
+        end
+        x
+      end
+    
+      def collect_resources
+        @resources = @xml_doc.search('./resourceDescriptor').map { |r| Resource.new(r) }
       end
       
-      body = Builder::XmlMarkup.new :indent => 2
-      body.requestXmlString { |request_string| request_string.cdata! inner_xml.target! }
-    end
+      # Response from a list request.
+      class ListResponse < Response
+        # Initialize the list response from a Savon response.  The listReturn element is 
+        # pulled from the response, and each resourceDescriptor child of that element is
+        # collected into a list as each item in the list.
+        def initialize(savon_response)
+          soap_doc = Nokogiri::XML savon_response.to_xml
+          @xml_doc = Nokogiri::XML soap_doc.search('//listReturn/node()').inner_text
+          collect_resources
+        end
+      
+        # Get a list of items from the list response.  Each of the items in the list
+        # returned is a JasperClient::Resource.
+        def items
+          resources
+        end
+      end
     
-    alias to_s to_xml
+      # Response from a get request.
+      class GetResponse < Response
+        # Initialize the list response from a Savon response.  The getReturn element is
+        # pulled from the response, and each resourceDescriptor is processed into info about
+        # the resource involved.
+        def initialize(savon_response)
+          savon_response.tap do |soap|
+            soap_doc = Nokogiri::XML soap.to_xml
+            @xml_doc = Nokogiri::XML soap_doc.search('//getReturn/node()').inner_text
+            collect_resources
+          end
+        end
+      end
     
-    class List < Request
-      def to_xml
-        build_request do |body|
-          arguments.each_pair { |name,value| body.argument(value, :name => name) }
+      # Response from a runReport request.
+      class RunReportResponse < Response
+        attr_reader :http
+        def initialize(savon_response)
+          savon_response.tap do |soap|
+            @http = soap.http
+            xml = http.multipart? ? http.start_part : soap.to_hash.fetch(:run_report_response).fetch(:run_report_return)
+            soap_doc = Nokogiri::XML xml
+            @xml_doc = Nokogiri::XML soap_doc.search('//runReportReturn/node()').inner_text
+          end
+        end
+      
+        # return the multipart related parts from the http response.
+        # When the response is not multipart, an empty list is returned.
+        def parts
+          http.multipart? ? http.parts : []
         end
       end
     end
-    
-    class Get < Request
-      def to_xml
-        build_rquest do |body|
-            <resourceDescriptor name="JRLogo" wsType="img" uriString="/Reports/xforty/user_list" isNew="false">
-            </resourceDescriptor>
-          
-        end
-      end
-    end
-    
-    class RunReport < Request
-      def to_xml
-        build_rquest do |body|
-          
-        end
-      end
-    end
-        
-    attr_accessor :arguments, :client
-    
-    def soap_method
-      self.class.name.underscore
-    end
-  end
-
-  #--------------------------------------------------------------------
-  # Responses
-  #--------------------------------------------------------------------
-  class Response
-    attr_reader :xml_doc
-    
-    def return_code
-      xml_doc.search('//returnCode').inner_text
-    end
-    
-    class ListResponse < Response
-      def initialize(response_xml)
-        soap_doc = Nokogiri::XML response_xml
-        @xml_doc = Nokogiri::XML soap_doc.search('//listReturn/node()').inner_text
-      end
+  
+    attr_reader :wsdl_url, :username, :password
+  
+    # Initialize the JapserClient with a URL (points to the
+    # repository service), a username, and a password.
+    def initialize(wsdl_url, username, password)
+      @wsdl_url = wsdl_url.to_s
+      @username = username.to_s
+      @password = password.to_s
       
-      def items
-        xml_doc.search('//resourceDescriptor').map { |rd| Resource.new rd }
+      super @wsdl_url
+      request.basic_auth @username, @password
+    end
+  
+    # return true if name indicates a supported request.
+    def supported_request?(name)
+      [:get, :list, :run_report].include? name.to_sym
+    end
+  
+    def method_missing(name, *params, &block)
+      if supported_request?(name)
+        req = Request.new(name)
+        request_xml = req.build(&block)
+      
+        savon_response = super(name) { |soap| soap.body = request_xml.to_s }
+        response_class = Response.const_get "%sResponse" % [ name.to_s.humpify.to_sym ]
+        response_class.new savon_response
+      else
+        super(name, params)
       end
-    end
-    
-    class GetResponse < Response
-      
-    end
-    
-    class RunReportResponse < Response
-      
-    end
-  end
-  
-  attr_reader :wsdl_url, :username, :password
-  
-  def initialize(wsdl_url, username, password)
-    super wsdl_url
-    request.basic_auth username, password  
-    @wsdl_url = wsdl_url
-    @username = username
-    @password = password
-  end
-  
-  def supported_request?(name)
-    Request.const_get name.to_s.capitalize.to_sym
-    return true
-  rescue NameError
-    return false
-  end
-  
-  def method_missing(name, params)
-    if supported_request?(name)
-      request_class = Request.const_get name.to_s.capitalize.to_sym
-      request = request_class.new
-      request.arguments = params
-      savon_response = super(name, params) { |soap| soap.body = request.to_xml }
-      response_xml = savon_response.to_xml
-      response_class = Response.const_get "%sResponse" % [ name.to_s.capitalize.to_sym ]
-      response_class.new response_xml
-    else
-      super(params)
     end
   end
 end

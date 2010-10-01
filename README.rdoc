@@ -1,0 +1,73 @@
+= jasper_client
+
+A simple client API for accessing jasper reports repository service.  
+
+The list, get, and runReport actions are supported.
+
+JasperClient provides a mechanism to construct service requests
+using Xml::Builder.  Client methods (list, get, run_report) yield
+to a block which is passed a builder to the guts of the SOAP
+request.  This allows for an easy mechanism to create XML that
+is added to a request.  
+
+Responses types are specific to the request.  Response types include
+ListResponse, GetResponse, RunReportResponse, etc.
+
+Reports are peculiar, in that the HTTP responses that are sent by
+Jasper Server are http multipart related.  This means they are a
+multipart mime response with several parts.  The parts include the
+XML SOAP response, the report content (which might be a PDF, a CSV, 
+or an HTML file with accompanying images in their individual parts).
+
+== Example list request
+
+A typical request might looks look like the following:
+
+  client = JasperClient::RepositoryService.new(wsdl, user, pass)
+  
+  response = client.list do |request|
+    request.argument :name => "LIST_RESOURCES"
+    request.argument 'reportUnit', :name => "RESOURCE_TYPE"
+    request.argument '/Reports/xforty', :name => 'START_FROM_DIRECTORY'
+  end
+  
+  response.success?
+
+For more information see JasperClient::RepositoryService::Response::ListResponse.
+== Example get request
+  
+  response = client.get do |req|
+    req.resourceDescriptor :name => 'jrlogo', :wsType => 'img', :uriString => '/Reports/xforty/user_list', :isNew => 'false'
+  end
+  
+  puts "Is successful: #{response.success?}"
+
+For more information see JasperClient::RepositoryService::Response::GetResponse.
+
+== Example runReport request
+
+  response = client.run_report do |req|
+    req.argument 'HTML', :name => 'RUN_OUTPUT_FORMAT'
+  
+    req.resourceDescriptor :name => 'JRLogo', 
+      :wsType => 'img', 
+      :uriString => '/reports/xforty/user_list', 
+      :isNew => 'false'
+  end
+  
+  puts "Is successful: #{response.success?}"
+  
+  puts "Parts? #{response.parts.count}"
+  
+  response.parts.each do |part|
+    puts "Part: #{part.suggested_filename}"
+  end
+
+For more information see JasperClient::RepositoryService::Response::RunReportResponse.
+
+The class of the request depends on the type of request.  It will be of
+type ListResponse, GetResponse, or RunReportResponse.
+
+== Copyright
+
+Copyright (c) 2010 xforty technologies. See LICENSE for details.
