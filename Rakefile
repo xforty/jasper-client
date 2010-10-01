@@ -4,14 +4,13 @@ require 'rake'
 begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
-    p gem.class.name
     gem.name = "jasper-client"
     gem.summary = %Q{Client for JasperServer}
     gem.description = %Q{Client for JasperServer}
     gem.email = "alibby@xforty.com"
     gem.homepage = "http://github.com/alibby/jasper-client"
     gem.authors = ["Andrew Libby"]
-    gem.add_development_dependency "thoughtbot-shoulda", ">= 0"
+    # gem.add_development_dependency "thoughtbot-shoulda", ">= 0"
     gem.files =  FileList["[A-Z]*", "{bin,generators,lib,test}/**/*"]
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
   end

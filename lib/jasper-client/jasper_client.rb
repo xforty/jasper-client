@@ -122,6 +122,14 @@ module JasperClient
         "0" == return_code
       end
     
+      def message
+        if success?
+          "OK"
+        else
+          xml_doc.search('//returnMessage/node()')
+        end
+      end
+      
       # Search the response using xpath.
       def search(path)
         return xml_doc.search(path) if xml_doc.respond_to?(:search)
@@ -186,7 +194,7 @@ module JasperClient
         # return the multipart related parts from the http response.
         # When the response is not multipart, an empty list is returned.
         def parts
-          multipart? ? http.parts : []
+          http.multipart? ? http.parts : []
         end
       end
     end
