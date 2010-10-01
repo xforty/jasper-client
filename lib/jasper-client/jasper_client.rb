@@ -182,11 +182,11 @@ module JasperClient
             @xml_doc = Nokogiri::XML soap_doc.search('//runReportReturn/node()').inner_text
           end
         end
-      
+        
         # return the multipart related parts from the http response.
         # When the response is not multipart, an empty list is returned.
         def parts
-          http.multipart? ? http.parts : []
+          multipart? ? http.parts : []
         end
       end
     end

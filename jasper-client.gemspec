@@ -4,36 +4,35 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |s|
-  s.name = %q{jasper_client}
+  s.name = %q{jasper-client}
   s.version = "0.0.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Andrew Libby"]
-  s.date = %q{2010-09-30}
-  s.description = %q{A SOAP client to talk to the JasperReports repository service}
+  s.date = %q{2010-10-01}
+  s.description = %q{Client for JasperServer}
   s.email = %q{alibby@xforty.com}
   s.extra_rdoc_files = [
     "LICENSE",
      "README.rdoc"
   ]
   s.files = [
-    "Rakefile",
+    "LICENSE",
+     "README.rdoc",
+     "Rakefile",
      "VERSION",
-     "example_xml/get.xml",
-     "example_xml/get_consultant_name_constraint.xml",
-     "example_xml/list.xml",
-     "example_xml/run_report.xml",
-     "example_xml/send.sh",
-     "lib/jasper_client.rb",
-     "lib/jasper_client/jasper_client.rb",
-     "t.rb",
-     "test.rb"
+     "lib/jasper-client.rb",
+     "lib/jasper-client/http_multipart.rb",
+     "lib/jasper-client/jasper_client.rb",
+     "lib/jasper-client/string.rb",
+     "test/helper.rb",
+     "test/test_jasper_client.rb"
   ]
-  s.homepage = %q{http://github.com/alibby/jasper_client}
+  s.homepage = %q{http://github.com/alibby/jasper-client}
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.6}
-  s.summary = %q{Client to talk to jasper server}
+  s.summary = %q{Client for JasperServer}
   s.test_files = [
     "test/helper.rb",
      "test/test_jasper_client.rb"
@@ -44,9 +43,12 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::RubyGemsVersion) >= Gem::Version.new('1.2.0') then
+      s.add_development_dependency(%q<thoughtbot-shoulda>, [">= 0"])
     else
+      s.add_dependency(%q<thoughtbot-shoulda>, [">= 0"])
     end
   else
+    s.add_dependency(%q<thoughtbot-shoulda>, [">= 0"])
   end
 end
 
