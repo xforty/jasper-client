@@ -119,6 +119,5 @@ class Net::HTTPResponse
 end
 
 class Net::HTTPOK
-  puts "bringing multipart into httpok."
   include HTTPMultipart
 end

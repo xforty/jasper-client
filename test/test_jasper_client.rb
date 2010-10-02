@@ -62,6 +62,15 @@ class TestJasperClient < Test::Unit::TestCase
     end
   end
 
+  should "produce string message when report path is bad" do 
+    client = setup_connection
+    response = client.run_report do |req|
+      req.resourceDescriptor :name => 'jrlogo', :wsType => 'img', :uriString => '/Reports/xfortys/user_list', :isNew => 'false'
+    end
+    
+    assert(response.message.class == String)
+  end
+
   should "return valid message on bad report path" do 
     client = setup_connection
     response = client.run_report do |req|

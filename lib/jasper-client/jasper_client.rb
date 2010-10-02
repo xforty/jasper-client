@@ -123,12 +123,10 @@ module JasperClient
       end
     
       def message
-        p "in message"
-        p xml_doc.to_xml
         if success?
           "OK"
         else
-          xml_doc.search('//returnMessage/node()')
+          xml_doc.search('//returnMessage/node()').inner_text
         end
       end
       
