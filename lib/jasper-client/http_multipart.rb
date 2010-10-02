@@ -1,3 +1,5 @@
+require 'net/http'
+
 # A mixin to add basic RFC 2387 MIME Multipart/Related
 # response support. 
 #
@@ -6,16 +8,18 @@
 # Multipart/Related response is used when all of the objects
 # are related to one another.  Typcially multipart is used
 # to have alternative versions of the same content. This is
-# not the type here.
+# not the case with multipart related.
 #
 # This mixen was written while using the Savon SOAP API, but 
 # it's intended to be mixed in to Net::HTTP and does not have
 # any known dependencies on Savon.
 #
 # http://www.faqs.org/rfcs/rfc2387.html
-require 'net/http'
-
 module HTTPMultipart
+  
+    # An RFC2387 multipart part.  
+    #
+    # http://www.faqs.org/rfcs/rfc2387.html
     class Part
       # This makes headers for each part have the same interface
       # as they do on Net::HTTPResponse.
@@ -29,10 +33,12 @@ module HTTPMultipart
         @body = b
       end
       
+      # Content type supertype (for text/html, this would be 'text')
       def content_supertype
         content_type.split('/')[0]
       end
       
+      # Content type subtype.  (for text/html, this woudl be 'html')
       def content_subtype
         content_type.split('/')[1]
       end
@@ -43,11 +49,13 @@ module HTTPMultipart
         "%s.%s" % [ content_id.first.gsub(/<|>/, ''), content_subtype ]
       end
       
-      # get the content id
+      # get the content id.  Each part has a content-id  It's typical to use this as a basis
+      # for a fhile name.
       def content_id
         to_hash.fetch('content-id')
       end
       
+      # Write the content from this part to a file having name.
       def write_to_file(name = :internal)
         name = suggested_filename if :internal == name
         
@@ -67,10 +75,13 @@ module HTTPMultipart
       content_type_fields['boundary']
     end
     
+    # The ID of the "start part" or initial part of the multipart related
+    # response.  
     def start
       content_type_fields['start']
     end
     
+    # Return the start part.
     def start_part
       parts.select { |p| p.content_id.first == start }.first.body
     end
@@ -100,8 +111,6 @@ module HTTPMultipart
     # When we've got a multipart response, there are a few fields in the 
     # content-type header like the boundary, start content id, etc.  For
     # more info on this see RFC 2387 The MIME Multipart/Related content-type
-    #
-    # 
     def content_type_fields
       headers_split = to_hash.fetch('content-type').first.split(/\s*;\s*/)
       headers_split.shift # skip first element which is the mime type and subtype (text/xml or the like)

@@ -1,3 +1,4 @@
+# Contiainer for things belonging to jasper client.
 module JasperClient
   # a Jasper Server resource.
   #
@@ -23,6 +24,10 @@ module JasperClient
       initialize_resources soap.search('./resourceDescriptor')
     end
     
+    private 
+    
+    # extract all <resourceProperty> tags from the resource and turn them
+    # into a hash in @properties.
     def initialize_properties(properties)
       @properties = Hash.new
       properties.each do |prop|
@@ -30,6 +35,7 @@ module JasperClient
       end
     end
     
+    # extract all <resourceDescriptor> tags and turn them into Resource objects.
     def initialize_resources(resources)
       @resources = []
       resources.each do |res|
@@ -37,6 +43,7 @@ module JasperClient
       end
     end
   end
+  
   # A crack at a Jasper Server client for the repository service.
   #
   # This client sits on top of several common Ruby APIs including
@@ -76,7 +83,6 @@ module JasperClient
     # sub elements are created by the build() method.  This method yields a builder
     # that is expected to create the contents of the request element (the arugment 
     # tags in this case).
-    # 
     class Request
       attr_reader :name
     
@@ -122,6 +128,9 @@ module JasperClient
         "0" == return_code
       end
     
+      # return "OK" on success, since successful responses don't seem to have
+      # messages.  When the response is not successful, the message is pulled
+      # from the response xml.
       def message
         if success?
           "OK"
@@ -130,7 +139,11 @@ module JasperClient
         end
       end
       
-      # Search the response using xpath.
+      # Search the response using xpath.  When this Responses xml_doc
+      # does not have a search method, a string with inner_text and inner_html
+      # methods are added.  The reson for this is so unwitting callers
+      # won't need to have the extra logic to make sure that that this response
+      # has a valid xml_doc.
       def search(path)
         return xml_doc.search(path) if xml_doc.respond_to?(:search)
       
@@ -142,7 +155,8 @@ module JasperClient
         end
         x
       end
-    
+      
+      # Extract resourceDescriptors from the response and drop them into @resources.
       def collect_resources
         @resources = @xml_doc.search('./resourceDescriptor').map { |r| Resource.new(r) }
       end
@@ -217,6 +231,9 @@ module JasperClient
       [:get, :list, :run_report].include? name.to_sym
     end
   
+    # Essentially a proxy to method_missing for Savon.  If the method call is
+    # to a known request type, build XML with a request object and then 
+    # execute the Savon request.
     def method_missing(name, *params, &block)
       if supported_request?(name)
         req = Request.new(name)

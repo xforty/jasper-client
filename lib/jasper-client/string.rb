@@ -1,3 +1,7 @@
+# Logic for both of these were lifted from the rails 
+# source tree. We don't call active support directly because
+# we didn't want to depend on those gems merely for these
+# two bits of functionality.
 class String
   def underscore
     word = self.to_s.dup

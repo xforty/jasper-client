@@ -1,6 +1,6 @@
 = jasper_client
 
-A simple client API for accessing jasper reports repository service.  
+A client API for accessing jasper reports repository service.  
 
 The list, get, and runReport actions are supported.
 
@@ -8,16 +8,36 @@ JasperClient provides a mechanism to construct service requests
 using Xml::Builder.  Client methods (list, get, run_report) yield
 to a block which is passed a builder to the guts of the SOAP
 request.  This allows for an easy mechanism to create XML that
-is added to a request.  
+is added to a request. 
 
-Responses types are specific to the request.  Response types include
-ListResponse, GetResponse, RunReportResponse, etc.
+An example list request document:
 
-Reports are peculiar, in that the HTTP responses that are sent by
-Jasper Server are http multipart related.  This means they are a
-multipart mime response with several parts.  The parts include the
-XML SOAP response, the report content (which might be a PDF, a CSV, 
-or an HTML file with accompanying images in their individual parts).
+  <?xml version="1.0" encoding="utf-8"?>
+  <soapenv:Envelope 
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+      xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+      xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+      xmlns:axis="http://axis2.ws.jasperserver.jaspersoft.com">
+    <soapenv:Body>
+      <axis:list soapenv:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+        <requestXmlString xsi:type="xsd:string">
+        <![CDATA[
+           <request operationName="list"> 
+             <argument name="LIST_RESOURCES"/> 
+             <argument name="RESOURCE_TYPE">reportUnit</argument> 
+             <argument name="START_FROM_DIRECTORY">/Reports/xforty</argument> 
+          </request>
+          ]]>
+        </requestXmlString>
+       </axis:list>
+    </soapenv:Body>
+  </soapenv:Envelope>
+
+When a call to list is made, a builder is passed to the block provided. 
+The above request could be executed using the list example below.  In
+a nuttshell, the caller needs to construct the body/ children of the 
+<request></request> element.  Short work can be made of this by
+telling builder what to construct.
 
 == Example list request
 
@@ -34,6 +54,7 @@ A typical request might looks look like the following:
   response.success?
 
 For more information see JasperClient::RepositoryService::Response::ListResponse.
+
 == Example get request
   
   response = client.get do |req|
@@ -67,6 +88,28 @@ For more information see JasperClient::RepositoryService::Response::RunReportRes
 
 The class of the request depends on the type of request.  It will be of
 type ListResponse, GetResponse, or RunReportResponse.
+
+Response types are specific to the request.  Response types include
+ListResponse, GetResponse, RunReportResponse, etc.  Non-report 
+responses tend to be focused around the Resource class, which 
+represnets <resourceDescriptor> xml response elements.
+
+== Reports
+
+Reports are unique.  A report response is a multipart related mime
+document. The parts include the XML SOAP response, the report content 
+(which might be a PDF, a CSV, or an HTML file with accompanying images 
+in their individual parts).
+
+== Future
+
+In the future helper methods for helping to hone in on various
+kinds of info from the server will be built.  For example, you might
+want ot just find or list particular resource types like reports, 
+queries, etc. 
+
+Additionaly, the ability to update resources could be provided, but 
+we didn't have any use for this right now so we didn't focus on this.
 
 == Copyright
 
