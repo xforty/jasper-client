@@ -123,6 +123,8 @@ module JasperClient
       end
     
       def message
+        p "in message"
+        p xml_doc.to_xml
         if success?
           "OK"
         else
@@ -185,7 +187,7 @@ module JasperClient
         def initialize(savon_response)
           savon_response.tap do |soap|
             @http = soap.http
-            xml = http.multipart? ? http.start_part : soap.to_hash.fetch(:run_report_response).fetch(:run_report_return)
+            xml = http.multipart? ? http.start_part : soap.http.body # soap.to_hash.fetch(:run_report_response).fetch(:run_report_return)
             soap_doc = Nokogiri::XML xml
             @xml_doc = Nokogiri::XML soap_doc.search('//runReportReturn/node()').inner_text
           end

@@ -62,6 +62,15 @@ class TestJasperClient < Test::Unit::TestCase
     end
   end
 
+  should "return valid message on bad report path" do 
+    client = setup_connection
+    response = client.run_report do |req|
+      req.resourceDescriptor :name => 'jrlogo', :wsType => 'img', :uriString => '/Reports/xfortys/user_list', :isNew => 'false'
+    end
+    
+    assert(response.message.length > 0)
+  end
+  
   should "fetch on a bad resource path should be unsuccessful" do
     client = setup_connection
     response = client.run_report do |req|
