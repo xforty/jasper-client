@@ -39,7 +39,7 @@ module JasperClient
     def initialize_resources(resources)
       @resources = []
       resources.each do |res|
-        @resources << Resources.new(res)
+        @resources << Resource.new(res)
       end
     end
   end
@@ -158,11 +158,12 @@ module JasperClient
       
       # Extract resourceDescriptors from the response and drop them into @resources.
       def collect_resources
-        @resources = @xml_doc.search('./resourceDescriptor').map { |r| Resource.new(r) }
+        @resources = @xml_doc.search('./operationResult/resourceDescriptor').map { |r| Resource.new(r) }
       end
       
       # Response from a list request.
       class ListResponse < Response
+        include Enumerable
         # Initialize the list response from a Savon response.  The listReturn element is 
         # pulled from the response, and each resourceDescriptor child of that element is
         # collected into a list as each item in the list.
@@ -177,6 +178,8 @@ module JasperClient
         def items
           resources
         end
+        
+        def each(&blk); @resources.each(&blk); end
       end
     
       # Response from a get request.
