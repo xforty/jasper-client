@@ -1,0 +1,55 @@
+#!/usr/bin/env ruby
+
+puts File.dirname(__FILE__)
+
+$:.unshift File.join(File.dirname(__FILE__), '..', 'lib', 'jasper-client')
+
+p $:
+
+require 'jasper-client'
+require 'rubygems'
+
+
+wsdl = 'http://localhost:8080/jasperserver/services/repository?wsdl'
+user = pass = 'jasperadmin'
+
+top = ARGV.shift
+
+#::Savon::Request.log = true;
+
+client = JasperClient::RepositoryService.new(wsdl, user, pass)
+
+def save_resource(client, res)
+  puts "%10s %s" % [ res.type, res.uri_string ]
+  r = client.get do |request|
+    request.resourceDescriptor :name => '', :wsType => '', :uriString => res.uri_string, :isNew => 'false'
+  end
+  p r.success?
+  puts r.xml_doc.to_xml
+  puts r.xml_doc
+  save_resource(client, res)
+end
+
+def list_folder(client, path, &blk) 
+   response = client.list do |request|
+     request.resourceDescriptor :name => '', :wsType => 'folder', :uriString => path, :isNew => :false do |res|
+       res.label 'null'
+     end
+   end
+   unless response.success?
+      puts "Request Failed: %s" % [ response.message ]
+   end
+   response.each &blk
+   response.select{ |res| 
+    "folder" == res.type 
+   }.each { |res|
+    list_folder(client, res.uri_string,&blk)
+   }
+end
+
+list_folder(client,top) do |res|
+  puts "======================================================"
+  puts "%14s %s" % [ res.type, res.uri_string ]
+  save_resource(client, res) 
+end
+
