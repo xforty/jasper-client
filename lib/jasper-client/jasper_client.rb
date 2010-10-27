@@ -52,7 +52,7 @@ module JasperClient
   
     # Set this to true if you'd like to have Savon log to stderr
     ::Savon::Request.log = false;
-
+    
     # Request XML is built using the Request.
     #
     # A request looks like:
@@ -85,7 +85,20 @@ module JasperClient
     # tags in this case).
     class Request
       attr_reader :name
-    
+      
+      ##
+      # :method: list
+      #
+      #
+      # Retrive a list
+
+      ##
+      # :method: get
+      #
+
+      ##
+      # :method: runReport    
+
       # Create a new Request.  The name passed is the
       # request name (eg list, get, runReport).
       def initialize(name)

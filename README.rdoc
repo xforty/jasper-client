@@ -41,6 +41,13 @@ telling builder what to construct.
 
 == Example list request
 
+The list request retrieves information about a folders contents on the 
+jasper server.  The jasper server organizes resources (reports, controls, queries
+files, etc) in a folder hierarchy similar to the way modern computers manage
+files.
+
+A list request fetches the contents of a folder on the server.
+
 A typical request might looks look like the following:
 
   client = JasperClient::RepositoryService.new(wsdl, user, pass)
@@ -55,17 +62,28 @@ A typical request might looks look like the following:
 
 For more information see JasperClient::RepositoryService::Response::ListResponse.
 
+  response.each do |entry|
+    puts entry.name
+  end
+
 == Example get request
   
+A get request retrieves full information about a resource on the server.  This example fetches
+information about a report called user_list, though any resource type can be retuned with a
+get.
+
   response = client.get do |req|
-    req.resourceDescriptor :name => 'jrlogo', :wsType => 'img', :uriString => '/Reports/xforty/user_list', :isNew => 'false'
+    req.resourceDescriptor :name => 'jrlogo', :wsType => 'report', :uriString => '/Reports/xforty/user_list', :isNew => 'false'
   end
   
   puts "Is successful: #{response.success?}"
 
 For more information see JasperClient::RepositoryService::Response::GetResponse.
 
+
 == Example runReport request
+
+The runReport request produces report output in the desired format.
 
   response = client.run_report do |req|
     req.argument 'HTML', :name => 'RUN_OUTPUT_FORMAT'
