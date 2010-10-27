@@ -5,22 +5,26 @@
 
 Gem::Specification.new do |s|
   s.name = %q{jasper-client}
-  s.version = "0.0.1"
+  s.version = "0.1.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Andrew Libby"]
-  s.date = %q{2010-10-01}
+  s.date = %q{2010-10-27}
+  s.default_executable = %q{walker}
   s.description = %q{Client for JasperServer}
   s.email = %q{alibby@xforty.com}
+  s.executables = ["walker"]
   s.extra_rdoc_files = [
     "LICENSE",
      "README.rdoc"
   ]
   s.files = [
-    "LICENSE",
+    "COPYING",
+     "LICENSE",
      "README.rdoc",
      "Rakefile",
      "VERSION",
+     "bin/walker",
      "lib/jasper-client.rb",
      "lib/jasper-client/http_multipart.rb",
      "lib/jasper-client/jasper_client.rb",
