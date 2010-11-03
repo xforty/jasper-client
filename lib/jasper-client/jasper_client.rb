@@ -18,7 +18,7 @@ module JasperClient
       @uri_string = soap['uriString']
       @label = soap.search('./label/node()').inner_text
       @description = soap.search('./description/node()').inner_text
-      @createion_date = soap.search('./creation_date/node()').inner_text
+      @creation_date = soap.search('./creation_date/node()').inner_text
       
       initialize_properties soap.search('./resourceProperty')
       initialize_resources soap.search('./resourceDescriptor')
